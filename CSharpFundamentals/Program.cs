@@ -2,9 +2,48 @@
 This project is serve as a guide so that I can refresh my mind before doing an interview in C#
 */
 
-using System.Data.SqlTypes;
 using System.Security.Cryptography;
 using System.Text;
+
+// Stack
+Stack<string> nameStack = new Stack<string>();
+nameStack.Push("randeep");
+nameStack.Push("shahi");
+nameStack.Push("zyhra");
+
+nameStack.Peek(); //zyhra
+nameStack.Pop(); //zyhra
+nameStack.Pop(); //shahi
+
+// Queue
+Queue<int> queue = new Queue<int>();
+queue.Enqueue(1);
+queue.Enqueue(2);
+queue.Enqueue(3);
+
+queue.Dequeue(); // 1
+queue.Dequeue(); // 2
+queue.Dequeue(); // 3
+
+int size = queue.Count; // the queue is empty so 0;
+
+// PriorityQueue (PriorityQueue in C# is a min-heap by default)
+PriorityQueue<string, int> pq = new PriorityQueue<string, int>();
+pq.Enqueue("task1", 50);
+pq.Enqueue("task2", 10);
+pq.Enqueue("task3", 40);
+
+pq.Dequeue(); // "task2"
+
+// max-heap (honestly, super ugly)
+PriorityQueue<string, int> pqMaxHeap = new PriorityQueue<string, int>(Comparer<int>.Create((x, y) => y.CompareTo(x)));
+pqMaxHeap.Enqueue("task1", 1);
+pqMaxHeap.Enqueue("task2", 100);
+pqMaxHeap.Enqueue("task3", 50);
+
+pqMaxHeap.Dequeue(); // "task2"
+pqMaxHeap.Dequeue(); // "task3"
+pqMaxHeap.Dequeue(); // "task1"
 
 // array
 int[] values = new int[10]; // creates an array of length 10
