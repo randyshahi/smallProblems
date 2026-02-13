@@ -59,6 +59,8 @@ double average = valuesFilledIn.Average();
 int[,] matrix = new int[4,5]; // creates a matrix that is 4 x 5 (rows x columns)
 matrix[1,1] = 100;
 
+// TODO: add a comment/example about circular arrays
+
 // string
 string name = "randeepshahi";
 string firstName = name.Substring(0, 7); //randeep
@@ -77,6 +79,10 @@ for(int i = 0; i < listOfInts.Count; i++)
 {
     int value = listOfInts[i];
 }
+
+// doubly linked list
+LinkedList<string> doubleLinkedList = new LinkedList<string>();
+
 
 // string builder
 StringBuilder sb = new StringBuilder();
@@ -136,3 +142,7 @@ using(MD5 md5 = MD5.Create()) // creates a MD5 object so that we can compute has
     
     string hashInHex = sbForHash.ToString();
 }
+
+// Date and time
+DateTimeOffset currentTime = new DateTimeOffset(DateTime.UtcNow);
+long currentEpochMs = currentTime.ToUnixTimeMilliseconds();
