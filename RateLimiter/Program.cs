@@ -20,7 +20,7 @@ sealed class RateLimiter
     private readonly int limit;
     private readonly TimeSpan window;
     private readonly int numberOfBuckets;
-    private readonly long refillRate; // should be some amount of time
+    private readonly long refillRate;
     private readonly long refillIntervalMs;
     private Dictionary<string, long[]> clientIdToTokenBucket;
 
@@ -36,9 +36,7 @@ sealed class RateLimiter
 
     public bool Allow(string clientId, long currentTimeEpochMs)
     {
-        // Get the offset from current time in UTC time
         DateTimeOffset dto = new DateTimeOffset(DateTime.UtcNow);
-        // Get the unix timestamp in seconds
         long epochMs = dto.ToUnixTimeMilliseconds();
 
         if(!clientIdToTokenBucket.ContainsKey(clientId))
@@ -50,7 +48,8 @@ sealed class RateLimiter
         if(clientIdToTokenBucket[clientId][LastTimeStampIndex] < currentTimeEpochMs - this.refillIntervalMs)
         {
             long numberOfRefills = (clientIdToTokenBucket[clientId][LastTimeStampIndex] - currentTimeEpochMs)/refillIntervalMs;
-            // need to calculate how many refills need to happen
+            numberOfRefills = Math.Min(numberOfRefills, limit/numberOfBuckets);
+
             clientIdToTokenBucket[clientId][TokenBucketIndex] = Math.Min(
                 limit,
                 clientIdToTokenBucket[clientId][TokenBucketIndex] + (this.refillRate * numberOfRefills));
