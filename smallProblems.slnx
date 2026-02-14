@@ -2,5 +2,6 @@
   <Project Path="UrlShortener/UrlShortener.csproj" />
   <Project Path="CSharpFundamentals/CSharpFundamentals.csproj" />
   <Project Path="LeetCodeFundamentals/LeetCodeFundamentals.csproj" />
+  <Project Path="RateLimiter/RateLimiter.csproj" />
   <Project Path="TaskScheduler/TaskScheduler.csproj" />
 </Solution>
