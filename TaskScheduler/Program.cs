@@ -57,6 +57,15 @@ public class TaskScheduler
             availableWorkers.Enqueue(i, 0);
             workerToExecutionTimeDict[i] = 0;
         }
+
+        this.Initialize();
+    }
+
+    void Initialize()
+    {
+        Thread backgroundThread = new Thread(Process);
+        backgroundThread.IsBackground = true;
+        backgroundThread.Start();
     }
 
 
