@@ -4,13 +4,6 @@ Create a task scheduler
 
 */
 
-// See https://aka.ms/new-console-template for more information
-using System.Data.Common;
-using System.Reflection;
-using System.Reflection.Metadata;
-
-Console.WriteLine("Hello, World!");
-
 public class TaskScheduler
 {
     /// <summary>
@@ -33,14 +26,19 @@ public class TaskScheduler
     /// The next core to be assigned will always be the core which has the least amount of execution time in
     /// milliseconds
     /// </summary>
-    private PriorityQueue<int, long> availableCores;
+    private PriorityQueue<int, long> availableWorkers;
+
+    /// <summary>
+    /// Keeps track of how much time each core has spend during execution
+    /// </summary>
+    private Dictionary<int, long> workerToExecutionTimeDict;
 
     /// <summary>
     /// Keeps track of which cores are currently running jobs paired with the timestamp of when the job started.
     /// </summary>
-    private Dictionary<int, DateTimeOffset> usedCoresDict;
+    private Dictionary<int, DateTimeOffset> workersWithRunningJobsDict;
 
-    private PriorityQueue<int, long> jobsWithExpiryQueue = new PriorityQueue<int, long>();
+    private PriorityQueue<int, long> jobsWithExpiryQueue;
 
     /// <summary>
     /// Constructor
@@ -49,12 +47,15 @@ public class TaskScheduler
     TaskScheduler(int numberOfCores)
     {
         this.totalCores = numberOfCores;
-        this.usedCoresDict = new Dictionary<int, DateTimeOffset>();
-        this.availableCores = new PriorityQueue<int, long>();
+        this.availableWorkers = new PriorityQueue<int, long>();
+        this.workerToExecutionTimeDict = new Dictionary<int, long>();
+        this.workersWithRunningJobsDict = new Dictionary<int, DateTimeOffset>();
+        this.jobsWithExpiryQueue = new PriorityQueue<int, long>();
 
         for(int i = 0; i < numberOfCores; i++)
         {
-            availableCores.Enqueue(i, 0);
+            availableWorkers.Enqueue(i, 0);
+            workerToExecutionTimeDict[i] = 0;
         }
     }
 
@@ -71,13 +72,13 @@ public class TaskScheduler
             if(jobsWithExpiryQueue.Count > 0 && jobsWithExpiryQueue.Peek() > currentTimeEpoch)
             {
                 // we have jobs that potentially need to be timed-out
-                int core = jobsWithExpiryQueue.Dequeue();
-                if(usedCoresDict.ContainsKey(core))
+                int worker = jobsWithExpiryQueue.Dequeue();
+                if(this.workersWithRunningJobsDict.ContainsKey(worker))
                 {
                     // remove from dict and add back into pool. Need to also keep track of execution time
-                    DateTimeOffset startTime = usedCoresDict[core];
-                    availableCores.Enqueue(core, startTime.ToUnixTimeMilliseconds() + TimeoutMs);
-                    usedCoresDict.Remove(core);
+                    DateTimeOffset startTime = this.workersWithRunningJobsDict[worker];
+                    availableWorkers.Enqueue(worker, startTime.ToUnixTimeMilliseconds() + TimeoutMs);
+                    workersWithRunningJobsDict.Remove(worker);
                 }
 
             }
@@ -97,30 +98,35 @@ public class TaskScheduler
     /// <returns>-1 if no free core.</returns>
     int AssignJob()
     {
-        if(availableCores.Count > 0)
+        if(availableWorkers.Count > 0)
         {
-            int core = availableCores.Dequeue();
+            int worker = availableWorkers.Dequeue();
             DateTimeOffset currentTime = new DateTimeOffset(DateTime.UtcNow);
-            usedCoresDict.Add(core, currentTime);
-            return core;
+            workersWithRunningJobsDict.Add(worker, currentTime);
+            return worker;
         }
         return ErrorNoFreeCores;
     }
 
-    void ReturnCore(int coreNumber)
+    void ReturnCore(int worker)
     {
         // prevents adding the same core twice
-        if(usedCoresDict.ContainsKey(coreNumber))
+        if(workersWithRunningJobsDict.ContainsKey(worker))
         {
             DateTimeOffset currentTime = new DateTimeOffset(DateTime.UtcNow);
             long currentEpochMs = currentTime.ToUnixTimeMilliseconds();
-            DateTimeOffset startTime = usedCoresDict[coreNumber];
+
+            DateTimeOffset startTime = workersWithRunningJobsDict[worker];
             long startTimeEpochMs = startTime.ToUnixTimeMilliseconds();
+
             long elapsedTimeMs = startTimeEpochMs - currentEpochMs;
 
-            
-            availableCores.Enqueue(coreNumber, elapsedTimeMs);
-            usedCoresDict.Remove(coreNumber);
+            availableWorkers.Enqueue(worker, elapsedTimeMs);
+            workersWithRunningJobsDict.Remove(worker);
+        }
+        else
+        {
+            // a worker as attempted to be returned to the pool but has already been returned
         }
     }
 }
