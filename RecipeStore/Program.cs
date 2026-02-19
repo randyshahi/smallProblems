@@ -13,6 +13,8 @@ using System.Text;
 /// 2. Add the ability to query
 ///     - return all recipes that have a particular ingredient in them
 ///     - if there are multiple -> return by desc order or number of ingredients
+/// 3. Add User accounts
+/// 4. Add Version History
 namespace RecipeStore
 {
     public class RecipeStore
