@@ -40,7 +40,7 @@ namespace RecipeStore
         /// </summary>
         private int recipeCounter;
 
-        private Dictionary<string, List<(string, int)>> ingredientToRecipeIdAndIngredientCount;
+        private Dictionary<string, Dictionary<string, int>> ingredientToRecipeIdAndIngredientCount;
 
         RecipeStore()
         {
@@ -59,6 +59,7 @@ namespace RecipeStore
             }
 
             string key = RecipeIdPrefix + recipeCounter;
+            int numberOfIngredients = ingredients.Count;
 
             // update datatypes
             this.recipes[key] = (
@@ -68,6 +69,20 @@ namespace RecipeStore
             );
             this.recipeNameToRecipeId[name] = key;
             this.recipeCounter++;
+
+            foreach(string ingredient in ingredients)
+            {
+                if(this.ingredientToRecipeIdAndIngredientCount.ContainsKey(ingredient))
+                {
+                    this.ingredientToRecipeIdAndIngredientCount[ingredient][key] = numberOfIngredients;
+                }
+                else
+                {
+                    // create a new entry
+                    this.ingredientToRecipeIdAndIngredientCount[ingredient] = new Dictionary<string, int>();
+                    this.ingredientToRecipeIdAndIngredientCount[ingredient][key] = numberOfIngredients;
+                }
+            }
 
             return key;
         }
@@ -129,6 +144,8 @@ namespace RecipeStore
 
             // 1. Now we can update
             string originalRecipeName = this.recipes[recipeId].Item1;
+            List<string> originalIngredients = this.recipes[recipeId].Item2;
+            int numberOfIngredientsNew = ingredients.Count;
 
             this.recipes[recipeId] = (
                 name,
@@ -138,6 +155,20 @@ namespace RecipeStore
 
             this.recipeNameToRecipeId.Remove(originalRecipeName);
             this.recipeNameToRecipeId[name] = recipeId;
+
+            foreach(string ingredient in originalIngredients)
+            {
+                this.ingredientToRecipeIdAndIngredientCount[ingredient].Remove(recipeId);
+            }
+
+            foreach(string ingredient in ingredients)
+            {
+                if(!this.ingredientToRecipeIdAndIngredientCount.ContainsKey(ingredient))
+                {
+                    this.ingredientToRecipeIdAndIngredientCount[ingredient] = new Dictionary<string, int>();
+                }
+                this. ingredientToRecipeIdAndIngredientCount[ingredient][recipeId] = numberOfIngredientsNew;
+            }
 
             return false;
         }
@@ -172,7 +203,7 @@ namespace RecipeStore
             // 1. Get all recipes and return ordering in desc order by number of ingredients
             var recipes = this.ingredientToRecipeIdAndIngredientCount[ingredient];
 
-            result = (List<string>)recipes.OrderByDescending(x => x.Item2).Select(x => x.Item1);
+            result = (List<string>)recipes.OrderByDescending(x => x.Value).Select(x => x.Key);
 
             return result;
         }
