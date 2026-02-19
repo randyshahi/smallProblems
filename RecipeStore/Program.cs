@@ -1,6 +1,7 @@
 ﻿
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 
 
@@ -9,6 +10,9 @@ using System.Text;
 ///     - recipeId's will be prefixed with "recipeId" plus a number
 ///     - this number will start from 1 and increment upwards
 ///     - For GetRecipe -> return steps and ingredients separated by a comma as 1 string
+/// 2. Add the ability to query
+///     - return all recipes that have a particular ingredient in them
+///     - if there are multiple -> return by desc order or number of ingredients
 namespace RecipeStore
 {
     public class RecipeStore
@@ -34,12 +38,16 @@ namespace RecipeStore
         /// </summary>
         private int recipeCounter;
 
+        private Dictionary<string, List<(string, int)>> ingredientToRecipeIdAndIngredientCount;
+
         RecipeStore()
         {
             this.recipes = new();
             this.recipeNameToRecipeId = new();
+            this.ingredientToRecipeIdAndIngredientCount = new();
         }
 
+        // Part 1
         public String? AddRecipe(string name, List<string> ingredients, List<string> steps)
         {
             if(this.recipeNameToRecipeId.ContainsKey(name))
@@ -146,6 +154,25 @@ namespace RecipeStore
             this.recipeNameToRecipeId.Remove(recipeName);
 
             return true;
+        }
+
+        // Part 2
+        public List<string> SearchByIngredient(string ingredient)
+        {
+            List<string> result = new();
+
+            // 0. Check if we have any recipes that have this ingredient
+            if(!this.ingredientToRecipeIdAndIngredientCount.ContainsKey(ingredient))
+            {
+                return new List<string>();
+            }
+
+            // 1. Get all recipes and return ordering in desc order by number of ingredients
+            var recipes = this.ingredientToRecipeIdAndIngredientCount[ingredient];
+
+            result = (List<string>)recipes.OrderByDescending(x => x.Item2).Select(x => x.Item1);
+
+            return result;
         }
     }
 }
