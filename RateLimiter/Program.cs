@@ -1,37 +1,126 @@
-﻿// so now that we have buckets, how do we determine which bucket should be used?
-//  also, when do refill the bucket with tokens??
-//  Example:
-//      TimeSpan = 14 minutes
-//      numberOfBuckets = 14
-//      
-//      Each bucket corresponds to a minute
-//      - seems like we need to keep track of a start time or start epoch
-//          - lets say we do this. Now we know which bucket each request should go to
-//      - no we have the issue where we need to determine when the tokens are put back into the bucket
-//          - how do we do that?? Does something take care of this in the background??
-//              - this background worker can create tasks to reset the value??
+﻿// Challenge: Implemment a rate limiter
+// For this problem, I need to talk about all the options before starting
+//
+// Option 1
+// Fixed window
+//  - maintain a count for each user
+//  - resets every minute/ time period
+//
+// This works but it is bursty at boundaries.
+//
+// Option 2
+// Sliding window
+//  - store timestamps for each request
+//  - requires more memory
+//      - if there is a surge in traffic for many users -> we could end up storing way to many timestamps
+//      - One way to mitigate this is that we cap how many timestamps we store for each user.
+//          - ex. Once we have 100 timestamps -> don't store any more until the oldest have aged out
+//
+// This is better as now we are ratelimiting on a sliding window basis versus a fixed window
+//  - however, we are still subjugated to change of bursty traffic.
+//      - ex. 
+//          at t0 100 requests come from User 1
+//              - the queue holding these timestamps is now full and will only reset once the window has elapsed
+//
+// Option 3
+// Token bucket
+//  - Each user is given a Token bucket (this will be represented as an integer where the value indicates the number of tokens)
+//  - when a request comes in -> a token is removed from the bucket
+//      - if no tokens remain in the bucket -> request is ratelimited
+//  - as time passes -> tokens are slowly added back to the bucket
+//      - ex.
+//          at T0 (0): bucket has 100 tokens -> 10 user requests come in -> we now have 90 tokens remaining
+//              - the token fill rate is 10 tokens every 6 seconds
+//          at T1 (6): 10 tokens are added to the bucket -> the bucket now again has the max number of tokens
+//
+//  - This also solves the problem of bursty traffic
+//      - ex. (refresh rate is 10 tokens eveny 6 seconds)
+//          at T0 (0): bucket has 100 tokens -> 100 user request come in within a couple of seconds -> 0 tokens remaining
+//          at T1 (3): bucket has 0 tokens -> 10 user requests come in -> all requests are ratelimited
+//          at T2 (6): bucket has 0 tokens -> 10 tokens are added to the bucket -> bucket has 10 tokens
+//          at T3 (7): bucket has 10 tokens -> 10 user requests come in -> all requests are served
+//          - this pattern can repeat which allows for traffic to still trickle at the rate limit has been reached
+//          - this can save our service WHILE also providing a usable experience for our client
 
-using System.Runtime.InteropServices;
+namespace RateLimiterProgram
+{
+    class Program
+    {
+        static void Main(string[] args) // TODO: also do testing using NUnit
+        {
+            // Initialize the RateLimiter
+            int limit = 100;
+            TimeSpan window = new TimeSpan(0, 0, 0, 1);
+            RateLimiter rateLimiter = new RateLimiter(limit, window);
+            DateTimeOffset dto = new DateTimeOffset(DateTime.UtcNow);
+            DateTimeOffset dto2 = new DateTimeOffset(DateTime.UtcNow);
+            dto2 = dto2.AddSeconds(2);
 
+            long epochMs = dto.ToUnixTimeMilliseconds();
+            long epochMs2 = dto2.ToUnixTimeMilliseconds();
+
+
+            int success = 0;
+            int failure = 0;
+
+            // Send 105 requests to rate limiter for "usera" -> 100 should pass -> 5 should fail
+            for(int i = 0; i < 105; i++)
+            {
+                if(rateLimiter.Allow("usera", epochMs))
+                {
+                    success++;
+                }
+                else
+                {
+                    failure++;
+                }
+            }
+
+            Console.WriteLine($"success:{success}");
+            Console.WriteLine($"failure:{failure}");
+
+            Thread.Sleep(1005);
+
+            // Send 105 requests to rate limiter for "usera" -> 100 should pass -> 5 should fail
+            success = 0;
+            failure = 0;
+            for(int i = 0; i < 105; i++)
+            {
+                if(rateLimiter.Allow("usera", epochMs2))
+                {
+                    success++;
+                }
+                else
+                {
+                    failure++;
+                }
+            }
+
+            Console.WriteLine($"success:{success}");
+            Console.WriteLine($"failure:{failure}");
+
+        }
+    }
+}
+
+/// <summary>
+/// RateLimter which implements Token bucket algorithm
+/// </summary>
 sealed class RateLimiter
 {
-    private const int LastTimeStampIndex = 0;
-    private const int TokenBucketIndex = 1;
     private readonly int limit;
-    private readonly TimeSpan window;
     private readonly int numberOfBuckets;
-    private readonly long refillRate;
+    private readonly int refillRate;
     private readonly long refillIntervalMs;
-    private Dictionary<string, long[]> clientIdToTokenBucket;
+    private Dictionary<string, TokenBucket> clientIdToTokenBucket;
 
-    RateLimiter(int limit, TimeSpan window)
+    public RateLimiter(int limit, TimeSpan window)
     {
         this.limit = limit;
-        this.window = window;
-        this.numberOfBuckets = 10;
+        this.numberOfBuckets = 10; // this can be configurable if required
         this.refillRate = limit/numberOfBuckets;
         this.refillIntervalMs = (long)window.TotalMilliseconds/numberOfBuckets;
-        this.clientIdToTokenBucket = new Dictionary<string, long[]>();
+        this.clientIdToTokenBucket = new Dictionary<string, TokenBucket>();
     }
 
     public bool Allow(string clientId, long currentTimeEpochMs)
@@ -41,24 +130,77 @@ sealed class RateLimiter
 
         if(!clientIdToTokenBucket.ContainsKey(clientId))
         {
-            clientIdToTokenBucket[clientId] = new long[2] {epochMs , this.limit};
+            clientIdToTokenBucket[clientId] = new TokenBucket(epochMs , this.limit);
         }
 
-        // check if tokens needs to be added to bucket
-        if(clientIdToTokenBucket[clientId][LastTimeStampIndex] < currentTimeEpochMs - this.refillIntervalMs)
+        TokenBucket tokenBucket = clientIdToTokenBucket[clientId];
+
+        tokenBucket.AddTokensToBucket(currentTimeEpochMs,
+            this.refillIntervalMs,
+            this.refillRate,
+            this.limit,
+            this.numberOfBuckets);
+        
+        bool isAllowed = tokenBucket.RemoveTokenFromBucket();
+        return isAllowed;
+    }
+}
+class TokenBucket
+{
+    /// <summary>
+    /// the last time that a request came in for this TokenBucket
+    /// </summary>
+    public long lastRequestTimeEpochMs;
+
+    /// <summary>
+    /// the number of tokens in the bucket
+    /// </summary>
+    public int numOfTokens;
+
+    public TokenBucket(
+        long lastRequestTimeEpochMs,
+        int numOfTokens)
+    {
+        this.lastRequestTimeEpochMs = lastRequestTimeEpochMs;
+        this.numOfTokens = numOfTokens;
+    }
+
+    /// <summary>
+    /// Helper method to add tokens to the bucket
+    /// </summary>
+    /// <param name="currentTimeEpochMs"></param>
+    /// <param name="refillIntervalMs"></param>
+    /// <param name="refillRate"></param>
+    /// <param name="limit"></param>
+    /// <param name="numberOfBuckets"></param>
+    public void AddTokensToBucket(
+        long currentTimeEpochMs,
+        long refillIntervalMs,
+        int refillRate,
+        int limit,
+        int numberOfBuckets)
+    {
+        if(this.lastRequestTimeEpochMs < currentTimeEpochMs - refillIntervalMs)
         {
-            long numberOfRefills = (clientIdToTokenBucket[clientId][LastTimeStampIndex] - currentTimeEpochMs)/refillIntervalMs;
+            long numberOfRefills = (currentTimeEpochMs - this.lastRequestTimeEpochMs)/refillIntervalMs;
+
+            // this gives our number of refills an upper bound.
+            // ex. if hours go by -> the number of refills will supercede the size of the bucket
             numberOfRefills = Math.Min(numberOfRefills, limit/numberOfBuckets);
 
-            clientIdToTokenBucket[clientId][TokenBucketIndex] = Math.Min(
+            this.numOfTokens = Math.Min(
                 limit,
-                clientIdToTokenBucket[clientId][TokenBucketIndex] + (this.refillRate * numberOfRefills));
-        }
+                this.numOfTokens + (int)(refillRate * numberOfRefills));
 
-        // remove tokens from bucket
-        if(clientIdToTokenBucket[clientId][TokenBucketIndex] > 0)
+            this.lastRequestTimeEpochMs = currentTimeEpochMs;
+        }
+    }
+
+    public bool RemoveTokenFromBucket()
+    {
+        if(this.numOfTokens > 0)
         {
-            clientIdToTokenBucket[clientId][TokenBucketIndex]--;
+            this.numOfTokens--;
             return true;
         }
         return false;
