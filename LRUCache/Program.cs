@@ -21,84 +21,57 @@
 //                              -> then we apply our algorithm
 //                      - analogy of a hotel -> floors == groups AND rooms == cache slots AND middle 3 digits of passport to
 //                          determine floor
-
-public class LRUCache
+namespace LRUCache
 {
-    /// <summary>
-    /// mapping from cacheslot number to cached data
-    /// </summary>
-    private Dictionary<int, string> cacheSlots;
-
-    /// <summary>
-    /// Linked list that keeps track of the LRU cache slots
-    /// </summary>
-    private LinkedList<int> LRUSlots;
-
-    /// <summary>
-    /// number of slots that our cache has
-    /// </summary>
-    private int numberOfSlots;
-
-    public LRUCache(int numberOfSlots)
+    public class LRUCache
     {
-        this.numberOfSlots = numberOfSlots;
-        this.cacheSlots = new Dictionary<int, string>();
-        this.LRUSlots = new LinkedList<int>();
-    }
+        /// <summary>
+        /// key - cache slot number
+        /// data - cached data
+        /// </summary>
+        private Dictionary<int, string> cacheSlots;
 
-    public void Put(int key, string value)
-    {
-        if(cacheSlots.ContainsKey(key))
+        /// <summary>
+        /// Linked list that keeps track of the LRU cache slots. Ordered by oldest to newest
+        /// </summary>
+        private LinkedList<int> LRUSlots;
+
+        /// <summary>
+        /// number of slots that our cache has
+        /// </summary>
+        private int numberOfSlots;
+
+        public LRUCache(int numberOfSlots)
         {
-            LRUSlots.Remove(key); // update LRU List
-
-            cacheSlots[key] = value; // update value     
-            LRUSlots.AddFirst(key);
+            this.numberOfSlots = numberOfSlots;
+            this.cacheSlots = new Dictionary<int, string>();
+            this.LRUSlots = new LinkedList<int>();
         }
-        // new key
-        else
+
+        public void Put(int key, string value)
         {
-            if(IsCacheFull())
+            if(cacheSlots.ContainsKey(key))
             {
-                RemoveLRUEntry();
+                this.LRUSlots.Remove(key);
             }
-
-            // Add new entry
-            cacheSlots[key] = value;
-            LRUSlots.AddFirst(key);
-
+            else // may need to remove LRU entry
+            {
+                if(this.cacheSlots.Count == this.numberOfSlots)
+                {
+                    this.LRUSlots.RemoveFirst();
+                }
+            }
+            this.LRUSlots.Append(key);
+            this.cacheSlots[key] = value;
         }
-    }
 
-    public string Get(int key)
-    {
-        if(cacheSlots.ContainsKey(key))
+        public string Get(int key)
         {
-            // update LRU list
-
-            // return value
-            return cacheSlots[key];
+            if(this.cacheSlots.ContainsKey(key))
+            {
+                return this.cacheSlots[key];
+            }
+            return String.Empty;
         }
-    }
-
-    /// <summary>
-    /// Removes LRU entry
-    /// </summary>
-    private void RemoveLRUEntry()
-    {
-        int oldKey = LRUSlots.Last();
-        LRUSlots.Remove(oldKey);
-        cacheSlots.Remove(oldKey);
-    }
-
-    private bool IsCacheFull()
-    {
-        return cacheSlots.Count == this.numberOfSlots;
-    }
-
-    private void AddEntry(int key, string value)
-    {
-        cacheSlots[key] = value;
-        LRUSlots.AddFirst(key);
     }
 }

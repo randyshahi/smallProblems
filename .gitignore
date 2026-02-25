@@ -8,3 +8,6 @@
 /RecipeStore/obj
 /RateLimiter/bin
 /LRUCache/obj
+/UnitTests/bin
+/UnitTests/obj
+/LRUCache/bin

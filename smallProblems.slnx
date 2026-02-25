@@ -1,4 +1,5 @@
 <Solution>
+  <Project Path="UnitTests/UnitTests.csproj" />
   <Project Path="UrlShortener/UrlShortener.csproj" />
   <Project Path="CSharpFundamentals/CSharpFundamentals.csproj" />
   <Project Path="LeetCodeFundamentals/LeetCodeFundamentals.csproj" />
