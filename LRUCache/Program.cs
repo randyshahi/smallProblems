@@ -56,7 +56,7 @@ namespace LRUCache
             }
             else // may need to remove LRU entry
             {
-                if(this.cacheSlots.Count == this.numberOfSlots)
+                if(this.LRUSlots.Count == this.numberOfSlots)
                 {
                     this.LRUSlots.RemoveFirst();
                 }
