@@ -7,7 +7,7 @@ namespace OrderService.Services
     {
         private readonly IOrderStore orderStore;
 
-        public OrderService(OrderStore orderStore)
+        public OrderService(IOrderStore orderStore)
         {
             this.orderStore = orderStore;
         }
