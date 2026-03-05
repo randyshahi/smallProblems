@@ -12,21 +12,19 @@ namespace OrderService.Services
             this.orderStore = orderStore;
         }
 
-        public async Task<List<Order>> GetOrdersAsync()
+        public async Task<List<Order>> GetOrdersAsync(string userId)
         {
-            return await this.orderStore.GetAllOrdersAsync();
-
-            // can do some filtering here if needed
+            return await this.orderStore.GetAllOrdersAsync(userId);
         }
 
-        public async Task CreateOrderAsync(Order order)
+        public async Task CreateOrderAsync(string userId, Order order)
         {
-            await this.orderStore.CreateOrderAsync(order);
+            await this.orderStore.CreateOrderAsync(userId, order);
         }
 
-        public async Task<bool> CancelOrderAsync(int id)
+        public async Task<bool> CancelOrderAsync(string userId, int orderId)
         {
-            return await this.orderStore.CancelOrderAsync(id);
+            return await this.orderStore.CancelOrderAsync(userId, orderId);
         }
     }
 }
