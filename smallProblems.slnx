@@ -4,7 +4,10 @@
   <Project Path="CSharpFundamentals/CSharpFundamentals.csproj" />
   <Project Path="LeetCodeFundamentals/LeetCodeFundamentals.csproj" />
   <Project Path="LRUCache/LRUCache.csproj" />
+  <Project Path="OrderService/OrderService.csproj" />
   <Project Path="RateLimiter/RateLimiter.csproj" />
   <Project Path="RecipeStore/RecipeStore.csproj" />
+  <Project Path="simpleApiReview/simpleApiReview.csproj" />
+  <Project Path="TasksAndThreadsReview/TasksAndThreadsReview.csproj" />
   <Project Path="TaskScheduler/TaskScheduler.csproj" />
 </Solution>
