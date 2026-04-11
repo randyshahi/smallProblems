@@ -1,22 +1,3 @@
-/TaskScheduler/obj
-/UrlShortener/bin
-/UrlShortener/obj
-/TaskScheduler/bin
-/CSharpFundamentals/obj
-/LeetCodeFundamentals/obj
-/RateLimiter/obj
-/RecipeStore/obj
-/RateLimiter/bin
-/LRUCache/obj
-/UnitTests/bin
-/UnitTests/obj
-/LRUCache/bin
-/simpleApiReview/obj
-/OrderService/bin
-/CSharpFundamentals/bin
-/OrderService/obj
-/simpleApiReview/bin
-/TasksAndThreadsReview/bin
-/TasksAndThreadsReview/obj
-/OrderServiceTests/bin
-/OrderServiceTests/obj
+# .NET build output
+bin/
+obj/
