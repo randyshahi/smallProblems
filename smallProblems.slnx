@@ -10,4 +10,5 @@
   <Project Path="simpleApiReview/simpleApiReview.csproj" />
   <Project Path="TasksAndThreadsReview/TasksAndThreadsReview.csproj" />
   <Project Path="TaskScheduler/TaskScheduler.csproj" />
+  <Project Path="TicTacToeCli/TicTacToeCli.csproj" />
 </Solution>
